@@ -1,3 +1,4 @@
+import { readdirSync, readFileSync } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
@@ -49,3 +50,15 @@ test("a minimal classic schema drops the registry symbols", async () => {
   expect(out, "registries.ts `$output` lost its @__PURE__ annotation").not.toContain("ZodOutput");
   expect(out, "registries.ts `$input` lost its @__PURE__ annotation").not.toContain("ZodInput");
 }, 30000);
+
+// rollup warns on any comment containing the marker that is not directly attached to a call, so prose must not spell it
+test("the pure annotation marker only appears as an annotation", () => {
+  const dir = path.resolve(here, "..");
+  const bad = readdirSync(dir)
+    .filter((f) => f.endsWith(".ts"))
+    .filter((f) => {
+      const src = readFileSync(path.join(dir, f), "utf8");
+      return (src.match(/@__PURE__/g) ?? []).length !== (src.match(/\/\*\s*@__PURE__\s*\*\//g) ?? []).length;
+    });
+  expect(bad).toEqual([]);
+});
